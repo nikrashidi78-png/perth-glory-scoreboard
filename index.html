@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perth Glory Scoreboard</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:transparent;color:white;font-family:Arial,sans-serif}
+.board{display:grid;grid-template-columns:1fr 1.05fr 1fr;align-items:center;
+background:linear-gradient(110deg,#35105d,#170b27);border:2px solid #68458b;
+border-radius:12px;overflow:hidden;min-height:150px}
+.team{display:flex;align-items:center;justify-content:center;gap:12px;padding:15px}
+.name{font-weight:900;font-size:clamp(14px,2.1vw,27px);text-transform:uppercase}
+.crest{width:55px;height:55px;border:2px solid #a58abe;border-radius:50%;
+display:flex;align-items:center;justify-content:center;text-align:center;
+font-size:10px;font-weight:bold;padding:4px;overflow:hidden}
+.crest img{width:100%;height:100%;object-fit:contain}
+.middle{background:#120a1c;text-align:center;padding:14px 6px}
+.brand{font-size:clamp(9px,1vw,13px);font-weight:bold;letter-spacing:1.5px;color:#e9caff}
+.score{font-size:clamp(35px,5vw,62px);font-weight:900;line-height:1.1;margin:5px}
+.clock{font-size:clamp(16px,2vw,23px);font-weight:bold}
+.period{font-size:10px;letter-spacing:2px;margin-top:5px;color:#d8c8e8}
+.controls{margin:14px auto;max-width:600px;padding:14px;background:#20142c;
+border:1px solid #68458b;border-radius:10px}
+.controls h3{margin:0 0 10px}
+input,select,button{padding:9px;margin:3px;border-radius:5px;border:1px solid #80659a}
+input{width:115px;max-width:100%}
+button{background:#612ba0;color:white;font-weight:bold;cursor:pointer}
+.row{margin:6px 0}
+body.clean .controls{display:none}
+.note{font-size:12px;color:#d8c8e8}
+@media(max-width:520px){.team{gap:5px;padding:6px;flex-direction:column}.crest{width:35px;height:35px;font-size:8px}.board{min-height:115px}}
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="team">
+    <div class="crest" id="hc">PERTH<br>GLORY</div>
+    <div class="name" id="hn">Perth Glory</div>
+  </div>
+  <div class="middle">
+    <div class="brand" id="brand">AWAY DAYS WITH PERTH GLORY</div>
+    <div class="score"><span id="hs">0</span> – <span id="as">0</span></div>
+    <div class="clock" id="clock">00:00</div>
+    <div class="period" id="period">FIRST HALF</div>
+  </div>
+  <div class="team">
+    <div class="crest" id="ac">OPPONENT</div>
+    <div class="name" id="an">Opponent</div>
+  </div>
+</div>
+
+<div class="controls">
+  <h3>Scoreboard controls</h3>
+  <div class="row">
+    Home team <input id="hi" value="Perth Glory">
+    Away team <input id="ai" value="Opponent">
+  </div>
+  <div class="row">
+    Home score <input id="hscore" type="number" min="0" value="0">
+    Away score <input id="ascore" type="number" min="0" value="0">
+  </div>
+  <div class="row">
+    Home crest URL <input id="himg" placeholder="Optional image URL">
+    Away crest URL <input id="aimg" placeholder="Optional image URL">
+  </div>
+  <div class="row">
+    Clock minutes <input id="mins" type="number" min="0" value="0">
+    Seconds <input id="secs" type="number" min="0" max="59" value="0">
+  </div>
+  <div class="row">
+    <button onclick="updateBoard()">Update teams and score</button>
+    <button onclick="setClock()">Set clock</button>
+  </div>
+  <div class="row">
+    <button onclick="startClock()">Start clock</button>
+    <button onclick="pauseClock()">Pause clock</button>
+    <button onclick="resetClock()">Reset clock</button>
+  </div>
+  <div class="row">
+    <select id="periodSelect">
+      <option>PRE-MATCH</option>
+      <option selected>FIRST HALF</option>
+      <option>HALF-TIME</option>
+      <option>SECOND HALF</option>
+      <option>FULL-TIME</option>
+      <option>EXTRA TIME</option>
+      <option>PENALTIES</option>
+    </select>
+    <button onclick="document.getElementById('period').textContent=document.getElementById('periodSelect').value">Set period</button>
+    <button onclick="document.body.classList.toggle('clean')">Hide/show controls</button>
+  </div>
+  <p class="note">Use the controls to manage the scoreboard. The clock is a manual match timer, not an official live match feed.</p>
+</div>
+
+<script>
+let elapsed=0, running=false, last=null, timer=null;
+function drawClock(){
+  let t=Math.floor(elapsed);
+  document.getElementById('clock').textContent=
+  String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+}
+function tick(now){
+  if(!running){last=null;timer=null;return}
+  if(last!==null)elapsed+=(now-last)/1000;
+  last=now;drawClock();timer=requestAnimationFrame(tick);
+}
+function startClock(){
+  if(!running){running=true;last=null;timer=requestAnimationFrame(tick)}
+}
+function pauseClock(){running=false}
+function setClock(){
+  pauseClock();
+  let m=Math.max(0,Number(document.getElementById('mins').value)||0);
+  let s=Math.max(0,Math.min(59,Number(document.getElementById('secs').value)||0));
+  elapsed=m*60+s;drawClock();
+}
+function resetClock(){
+  pauseClock();elapsed=0;
+  document.getElementById('mins').value=0;
+  document.getElementById('secs').value=0;drawClock();
+}
+function setCrest(id,url,fallback){
+  let el=document.getElementById(id);
+  el.replaceChildren();
+  if(url.trim()){
+    let img=document.createElement('img');img.src=url.trim();
+    img.onerror=()=>{el.textContent=fallback};
+    el.appendChild(img);
+  }else{el.textContent=fallback}
+}
+function updateBoard(){
+  let h=document.getElementById('hi').value.trim()||'Perth Glory';
+  let a=document.getElementById('ai').value.trim()||'Opponent';
+  document.getElementById('hn').textContent=h;
+  document.getElementById('an').textContent=a;
+  document.getElementById('hs').textContent=Math.max(0,Number(document.getElementById('hscore').value)||0);
+  document.getElementById('as').textContent=Math.max(0,Number(document.getElementById('ascore').value)||0);
+  setCrest('hc',document.getElementById('himg').value,h);
+  setCrest('ac',document.getElementById('aimg').value,a);
+}
+drawClock();
+</script>
+</body>
+</html>
